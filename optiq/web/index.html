@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OptiQ — Adaptive CPU Scheduling Framework</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">OptiQ</div>
+        <div class="brand-title">CPU Scheduling Lab</div>
+      </div>
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-indicator live"></span>
+        <span class="status-text">Connecting to Backend...</span>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="overview">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Overview
+        </button>
+        <button class="nav-item" data-tab="comparison">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Scheduler Benchmark
+        </button>
+        <button class="nav-item" data-tab="simulation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run Simulation
+        </button>
+        <button class="nav-item" data-tab="ml">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          ML Evaluation
+        </button>
+        <button class="nav-item" data-tab="ablation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Ablation & Fairness
+        </button>
+        <button class="nav-item" data-tab="history">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Experiment Registry
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="run-selector-container">
+          <label for="globalRunSelect">Active Experiment Run:</label>
+          <select id="globalRunSelect" class="form-select"></select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top header bar -->
+      <header class="top-bar">
+        <div class="active-run-display">
+          <span class="text-muted">Viewing:</span>
+          <span class="active-run-pill" id="activeRunBadge">Loading...</span>
+        </div>
+        <div class="top-bar-actions">
+          <button class="btn btn-secondary btn-sm" id="btnRefreshRun">Refresh Data</button>
+          <a href="#" class="btn btn-secondary btn-sm" id="btnDownloadComparison" target="_blank">Download Comparison CSV</a>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <!-- 1. OVERVIEW PAGE -->
+        <section id="tab-overview" class="tab-pane active">
+          <div class="pane-header">
+            <h2>Framework Overview & Status</h2>
+            <p class="subtitle">Real-time state of the OptiQ adaptive scheduling framework, active experiment, and validated model configuration.</p>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">OptiQ Avg Waiting Time</span>
+              <span class="kpi-value" id="kpiAvgWait">—</span>
+              <span class="kpi-subtext" id="kpiAvgWaitSub">Compared to FCFS</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">OptiQ Turnaround Time</span>
+              <span class="kpi-value" id="kpiAvgTat">—</span>
+              <span class="kpi-subtext" id="kpiAvgTatSub">Mean service + wait</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Jain's Fairness Index</span>
+              <span class="kpi-value" id="kpiFairness">—</span>
+              <span class="kpi-subtext">1.0 = Perfectly equal slowdown</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Best ML Regressor</span>
+              <span class="kpi-value" id="kpiBestModel">—</span>
+              <span class="kpi-subtext" id="kpiModelSub">Validation MAE Winner</span>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Run Highlights</h3>
+            </div>
+            <div class="card-body">
+              <ul class="insights-list" id="overviewHighlights">
+                <li>Loading run observations...</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Active Run Configuration & Parameters</h3>
+            </div>
+            <div class="card-body">
+              <div class="details-grid" id="overviewDetails">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <details class="disclosure-panel mt-4">
+            <summary class="disclosure-summary">Methodology & Limitations</summary>
+            <div class="disclosure-content">
+              <p>
+                <strong>Pre-Execution Feature Pipeline:</strong> Models strictly utilize pre-scheduling attributes (requested cores, requested walltime, requested memory, submit hour, submit day-of-week, and inter-arrival time). All post-outcome variables (actual runtime, actual wait time, CPU usage, and completion status) are excluded to ensure zero target leakage.
+              </p>
+              <p class="mt-2">
+                <strong>Non-Deployable Oracle Baselines:</strong> <code>SJF (Oracle)</code> and <code>SRTF (Oracle)</code> utilize actual future ground-truth burst times unavailable to practical operating system schedulers. They serve solely as theoretical lower-bound reference baselines.
+              </p>
+              <p class="mt-2">
+                <strong>Simulation Scope:</strong> Evaluated on a single logical CPU discrete-event queue model. Multiprocessor core co-scheduling and OS context-switch hardware overheads are simplified to isolate algorithmic dispatch dynamics.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 2. SCHEDULER COMPARISON PAGE -->
+        <section id="tab-comparison" class="tab-pane">
+          <div class="pane-header">
+            <h2>Comparative Scheduler Benchmark</h2>
+            <p class="subtitle">Performance benchmark across identical arrivals and execution bursts on the held-out test workload.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header flex-between">
+              <h3>Algorithm Comparison Table</h3>
+              <div class="table-legend">
+                <span class="badge badge-oracle">Oracle Baseline</span>
+                <span class="badge badge-deployable">Deployable Policy</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="comparisonTable">
+                <thead>
+                  <tr>
+                    <th>Scheduler</th>
+                    <th>Type</th>
+                    <th>Avg Wait (s)</th>
+                    <th>Median Wait (s)</th>
+                    <th>Avg Turnaround (s)</th>
+                    <th>Median Turnaround (s)</th>
+                    <th>Response (s)</th>
+                    <th>Context Switches</th>
+                    <th>Starvation Risk</th>
+                    <th>
+                      Fairness
+                      <span class="info-tooltip-trigger" data-tooltip="Measures how evenly normalized slowdown is distributed across jobs; values closer to 1 indicate more equal slowdown.">?</span>
+                    </th>
+                    <th>Throughput</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Throughput Interpretation Note -->
+          <div class="card mt-3">
+            <div class="card-body">
+              <p class="caption-note text-muted">
+                <strong>Note:</strong> Identical throughput across schedulers is
+                expected for this workload because all algorithms process the
+                same test set on a single CPU, with the same total burst demand
+                and overall execution horizon. Scheduling policies influence
+                waiting time, response time, and context-switch frequency, but
+                do not necessarily change aggregate throughput when all jobs
+                complete and total idle time remains unchanged.
+              </p>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Comparative Visualizations</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <img id="imgSchedComp" class="chart-img" alt="Scheduler Comparison Chart" />
+                <p class="caption-note text-muted">
+                  Note: SJF and SRTF Oracle baselines use future ground-truth burst durations unavailable to real-world schedulers, representing an idealized theoretical bound.
+                </p>
+              </div>
+              <div class="chart-container mt-4">
+                <img id="imgWaitDist" class="chart-img" alt="Waiting Time Distribution" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. SIMULATION PAGE -->
+        <section id="tab-simulation" class="tab-pane">
+          <div class="pane-header">
+            <h2>Interactive Simulation Engine</h2>
+            <p class="subtitle">Trigger a genuine backend execution with customized workload parameters and inspect the resulting timeline and decision trace.</p>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Simulation Parameters</h3>
+              </div>
+              <div class="card-body">
+                <form id="simForm">
+                  <div class="form-group">
+                    <label>Workload Source:</label>
+                    <select id="simSource" class="form-select">
+                      <option value="synthetic">Synthetic Seeded Workload</option>
+                      <option value="real">Real SWF Trace (LANL-CM5)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Synthetic Profile:</label>
+                    <select id="simProfile" class="form-select">
+                      <option value="mixed">Mixed (Bimodal Interactive + Batch)</option>
+                      <option value="short_heavy">Short-Heavy (Interactive)</option>
+                      <option value="long_heavy">Long-Heavy (Compute Intensive)</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Job Count (N):</label>
+                      <input type="number" id="simJobs" class="form-input" value="150" min="20" max="1000" />
+                    </div>
+                    <div class="form-group">
+                      <label>Random Seed:</label>
+                      <input type="number" id="simSeed" class="form-input" value="42" />
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Quantum Q (s):</label>
+                      <input type="number" id="simQuantum" class="form-input" value="30.0" step="1.0" min="1.0" />
+                    </div>
+                    <div class="form-group">
+                      <label>Aging Interval (s):</label>
+                      <input type="number" id="simAging" class="form-input" value="60.0" step="1.0" min="0.0" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Starvation Threshold (s):</label>
+                    <input type="number" id="simStarvation" class="form-input" value="300.0" step="10.0" min="10.0" />
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100" id="btnRunSim">Launch Simulation Run</button>
+                </form>
+                <div id="simStatusBox" class="status-box mt-3 d-none"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Execution Timeline (Gantt)</h3>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <img id="imgGantt" class="chart-img" alt="OptiQ Execution Timeline" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header flex-between">
+              <h3>OptiQ Decision Trace Log (First 50 Events)</h3>
+              <a href="#" id="btnDownloadTrace" class="btn btn-secondary btn-sm" target="_blank">Download Full Trace CSV</a>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="traceTable">
+                <thead>
+                  <tr>
+                    <th>Timestamp (s)</th>
+                    <th>Chosen PID</th>
+                    <th>Decision Reason</th>
+                    <th>Ready Queue Count</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. ML EVALUATION PAGE -->
+        <section id="tab-ml" class="tab-pane">
+          <div class="pane-header">
+            <h2>Machine Learning Burst Prediction Diagnostics</h2>
+            <p class="subtitle">Zero-leakage regression model training, cross-validation selection, and residual error analysis.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Model Performance on Held-Out Test Set</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="mlMetricsTable">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Val MAE (s)</th>
+                    <th>Test MAE (s)</th>
+                    <th>Test RMSE (s)</th>
+                    <th>Test R²</th>
+                    <th>Inference (ms)</th>
+                    <th>Train Samples</th>
+                    <th>Test Samples</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid-2 mt-4">
+            <div class="card">
+              <div class="card-header">
+                <h3>Actual vs Predicted Scatter & Residuals</h3>
+              </div>
+              <div class="card-body">
+                <img id="imgActualVsPred" class="chart-img" alt="Actual vs Predicted" />
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Model Comparison Metrics</h3>
+              </div>
+              <div class="card-body">
+                <img id="imgMlComp" class="chart-img" alt="ML Model Comparison" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Feature Importance Breakdown</h3>
+            </div>
+            <div class="card-body">
+              <img id="imgFeatImp" class="chart-img" alt="Feature Importance" />
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. ABLATION & FAIRNESS PAGE -->
+        <section id="tab-ablation" class="tab-pane">
+          <div class="pane-header">
+            <h2>Policy Ablation & Fairness Analysis</h2>
+            <p class="subtitle">Dissecting the isolated impact of ML burst prediction, priority aging, and starvation overrides.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Ablation Component Matrix</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="ablationTable">
+                <thead>
+                  <tr>
+                    <th>Policy</th>
+                    <th>Avg Wait (s)</th>
+                    <th>Median Wait (s)</th>
+                    <th>Avg Turnaround (s)</th>
+                    <th>Median Turnaround (s)</th>
+                    <th>Context Switches</th>
+                    <th>Starvation Risk</th>
+                    <th>Fairness Index</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Component Contribution Chart</h3>
+            </div>
+            <div class="card-body">
+              <img id="imgAblationComp" class="chart-img" alt="Ablation Comparison" />
+              <p class="caption-note text-muted">
+                Note: Priority aging dynamically promotes jobs that have waited in the ready queue past the aging interval, preventing long-running tasks from being indefinitely starved by incoming short bursts.
+              </p>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>Ablation Insights</h3>
+            </div>
+            <div class="card-body">
+              <ul class="insights-list" id="ablationInsightsList">
+                <li>Loading ablation observations...</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. EXPERIMENT REGISTRY PAGE -->
+        <section id="tab-history" class="tab-pane">
+          <div class="pane-header">
+            <h2>Experiment Run Registry</h2>
+            <p class="subtitle">Inspect and audit all historical and newly generated simulation outputs and raw artifacts.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>All Recorded Experiment Runs</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="historyTable">
+                <thead>
+                  <tr>
+                    <th>Run ID</th>
+                    <th>Type</th>
+                    <th>Timestamp</th>
+                    <th>Source</th>
+                    <th>Jobs</th>
+                    <th>Quantum</th>
+                    <th>Aging</th>
+                    <th>Starvation</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

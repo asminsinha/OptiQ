@@ -1,0 +1,35 @@
+﻿# Python environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Generated experiment outputs and historical model checkpoints
+runs/
+outputs/
+saved_models/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
