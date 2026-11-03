@@ -380,16 +380,14 @@ Within OptiQ, runtime is used as a proxy for CPU service time in the scheduling 
 
 The regression problem can be represented as:
 
-\[
-\hat{y}=f(X)
-\]
+Predicted Runtime = f(Input Features)
 
 Where:
 
-- \(X\) represents the input workload features.
-- \(f\) represents the trained regression model.
-- \(y\) represents the recorded job runtime.
-- \(\hat{y}\) represents the predicted runtime.
+- Input Features (X): Workload attributes available before execution.
+- f: Trained regression model.
+- Actual Runtime (y): Recorded job runtime.
+- Predicted Runtime (y_hat): Runtime estimated by the model.
 
 The prediction is subsequently used as an estimated execution requirement during scheduling.
 
@@ -438,14 +436,7 @@ Ridge Regression is a linear regression technique with L2 regularization.
 
 Its objective can be represented as:
 
-\[
-\min_{\beta}
-\left[
-\sum_{i=1}^{n}(y_i-X_i\beta)^2
-+
-\lambda\sum_{j=1}^{p}\beta_j^2
-\right]
-\]
+Minimize: Sum((y_i - X_i * beta)^2) + lambda * Sum(beta_j^2)
 
 The regularization term penalizes excessively large coefficients.
 
@@ -800,24 +791,15 @@ Priority aging is a technique used to reduce starvation in priority-based schedu
 
 The effective priority in OptiQ is represented by:
 
-\[
-P_{\text{effective}} =
-\min\left(
-P_{\text{ceiling}},
-P_{\text{base}}+
-\left\lfloor
-\frac{W_{\text{ready}}}{T_{\text{aging}}}
-\right\rfloor
-\right)
-\]
+**P_effective = MIN(P_ceiling, P_base + FLOOR(W_ready / T_aging))**
 
 Where:
 
-- \(P_{\text{effective}}\): Adjusted priority.
-- \(P_{\text{base}}\): Base priority.
-- \(P_{\text{ceiling}}\): Maximum permitted priority.
-- \(W_{\text{ready}}\): Accumulated ready-queue waiting time.
-- \(T_{\text{aging}}\): Configured aging interval.
+- **P_effective**: Adjusted priority.
+- **P_base**: Base priority.
+- **P_ceiling**: Maximum permitted priority.
+- **W_ready**: Accumulated ready-queue waiting time.
+- **T_aging**: Configured aging interval.
 
 The implementation resets ready-queue waiting time whenever the process receives CPU service.
 
@@ -858,18 +840,12 @@ The threshold is used to identify processes whose waiting time has become excess
 
 The starvation risk count is calculated as:
 
-\[
-N_{\text{starved}} =
-\sum_{i=1}^{n}
-\mathbf{1}
-\left(W_i \geq T_{\text{starvation}}\right)
-\]
+**N_starved = Number of processes for which W_i >= T_starvation**
 
 Where:
 
-- \(W_i\): Waiting time of process \(i\).
-- \(T_{\text{starvation}}\): Configured starvation threshold.
-- \(\mathbf{1}\): Indicator function.
+- **W_i**: Waiting time of process i.
+- **T_starvation**: Configured starvation threshold.
 
 A lower starvation risk count indicates fewer processes exceeded the configured waiting threshold.
 
@@ -961,14 +937,12 @@ OptiQ uses multiple metrics because scheduling performance cannot be described a
 
 The total time between a process arriving and completing execution.
 
-\[
-TAT_i = C_i-A_i
-\]
+**TAT_i = C_i - A_i**
 
 Where:
 
-- \(C_i\): Completion time.
-- \(A_i\): Arrival time.
+- **C_i**: Completion time.
+- **A_i**: Arrival time.
 
 Lower turnaround time generally indicates that processes finish sooner relative to their arrival.
 
@@ -978,11 +952,9 @@ The total time a process spends waiting in the ready queue.
 
 For the non-I/O workload model:
 
-\[
-WT_i = TAT_i-BT_i
-\]
+**WT_i = TAT_i - BT_i**
 
-Where \(BT_i\) is the process burst time.
+Where **BT_i** is the process burst time.
 
 Lower average waiting time indicates less time spent waiting for CPU service.
 
@@ -990,11 +962,9 @@ Lower average waiting time indicates less time spent waiting for CPU service.
 
 The time between process arrival and its first CPU allocation.
 
-\[
-RT_i = S_i-A_i
-\]
+**RT_i = S_i - A_i**
 
-Where \(S_i\) is the first CPU start time.
+Where **S_i** is the first CPU start time.
 
 Response time is particularly relevant to interactive workloads.
 
@@ -1002,10 +972,7 @@ Response time is particularly relevant to interactive workloads.
 
 The total interval between the earliest process arrival and the final process completion.
 
-\[
-Makespan =
-\max(C_i)-\min(A_i)
-\]
+**MAX(C_i) - MIN(A_i)**
 
 Lower makespan means the workload completed within a shorter overall time interval.
 
@@ -1013,10 +980,7 @@ Lower makespan means the workload completed within a shorter overall time interv
 
 Throughput measures the number of completed processes per unit of simulated time.
 
-\[
-Throughput =
-\frac{N_{\text{completed}}}{Makespan}
-\]
+**Completed Processes / Makespan**
 
 Higher throughput indicates more completed processes per unit of time.
 
@@ -1034,11 +998,7 @@ A high number of context switches may indicate additional scheduling overhead in
 
 The number of processes whose waiting time reaches or exceeds the configured starvation threshold.
 
-\[
-StarvationRisk =
-\sum_{i=1}^{n}
-\mathbf{1}(WT_i \geq T_{\text{starvation}})
-\]
+**Count(WT_i >= T_starvation)**
 
 Lower values indicate fewer processes exceeded the selected threshold.
 
@@ -1048,13 +1008,9 @@ Jain's Fairness Index measures how evenly a set of values is distributed.
 
 The implementation uses process waiting times:
 
-\[
-J(W)=
-\frac{\left(\sum_{i=1}^{n}W_i\right)^2}
-{n\sum_{i=1}^{n}W_i^2}
-\]
+**J(W) = (SUM(W_i))^2 / (n * SUM(W_i^2))**
 
-Where \(W_i\) represents the waiting time of process \(i\).
+Where **W_i** represents the waiting time of process \(i\).
 
 The index ranges from 0 to 1 when the denominator is nonzero.
 
@@ -1068,16 +1024,7 @@ If every waiting time is zero, the denominator is zero and the index requires sp
 
 Effective priority is the dynamically adjusted priority after applying the aging mechanism.
 
-\[
-P_{\text{effective}} =
-\min\left(
-P_{\text{ceiling}},
-P_{\text{base}}+
-\left\lfloor
-\frac{W_{\text{ready}}}{T_{\text{aging}}}
-\right\rfloor
-\right)
-\]
+**MIN(P_ceiling, P_base + FLOOR(W_ready / T_aging))**
 
 It provides a measure of how waiting time influences scheduling priority.
 
